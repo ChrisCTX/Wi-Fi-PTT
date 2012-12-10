@@ -16,11 +16,15 @@
 
 package com.example.android.wifidirect;
 
+import java.io.IOException;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.MediaPlayer;
+import android.media.MediaRecorder;
 import android.net.wifi.p2p.WifiP2pConfig;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
@@ -28,8 +32,10 @@ import android.net.wifi.p2p.WifiP2pManager.ActionListener;
 import android.net.wifi.p2p.WifiP2pManager.Channel;
 import android.net.wifi.p2p.WifiP2pManager.ChannelListener;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.Settings;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -51,11 +57,23 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private WifiP2pManager manager;
     private boolean isWifiP2pEnabled = false;
     private boolean retryChannel = false;
-
+    public boolean isReadyToRecord;
     private final IntentFilter intentFilter = new IntentFilter();
     private Channel channel;
     private BroadcastReceiver receiver = null;
 
+    // Audio stuff
+    private static final String LOG_TAG = "AudioRecordTest";
+    private static String mFileName = null;
+    private static String mFileNameIn = null;
+    private boolean isRecording = false;
+    private boolean isPlaying = false;
+    private MediaRecorder mRecorder = null;
+    private MediaPlayer mPlayer = null;
+    // End of Audio stuff
+    
+    
+    
     /**
      * @param isWifiP2pEnabled the isWifiP2pEnabled to set
      */
@@ -77,6 +95,12 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 
         manager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
         channel = manager.initialize(this, getMainLooper(), null);
+        
+        // Audio shit
+        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
+        mFileName += "/ptt.arm";
+        
+        mFileNameIn = Environment.getExternalStorageDirectory().getAbsolutePath() + "/pttin.arm";
     }
 
     /** register the BroadcastReceiver with the intent values to be matched */
@@ -91,6 +115,16 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     public void onPause() {
         super.onPause();
         unregisterReceiver(receiver);
+        super.onPause();
+        if (mRecorder != null) {
+            mRecorder.release();
+            mRecorder = null;
+        }
+
+        if (mPlayer != null) {
+            mPlayer.release();
+            mPlayer = null;
+        }
     }
 
     /**
@@ -117,6 +151,11 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         return true;
     }
 
+    public void isReady()
+    {
+    	isReadyToRecord = true;
+    }
+    
     /*
      * (non-Javadoc)
      * @see android.app.Activity#onOptionsItemSelected(android.view.MenuItem)
@@ -262,4 +301,102 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
         }
 
     }
+    
+    // Audio stuff
+    public void startPlaying() {
+    	isPlaying = true;
+        if(mPlayer != null) {
+        stopPlaying();
+        }
+           mPlayer = new MediaPlayer();
+           try {
+               mPlayer.setDataSource(mFileNameIn);
+               mPlayer.prepare();
+               mPlayer.start();
+           } catch (IOException e) {
+               Log.e(LOG_TAG, "prepare() failed");
+           }
+       }
+
+       private void stopPlaying() {
+           mPlayer.release();
+           mPlayer = null;
+       }
+
+       private void startRecording() {
+        if(isRecording)
+        return;
+       
+        if(mRecorder == null) {
+               mRecorder = new MediaRecorder();
+               mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+               mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+               mRecorder.setOutputFile(mFileName);
+               mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        }
+
+           try {
+            Log.v("", "before praparing");
+               mRecorder.prepare();
+               Log.v("", "before starting");
+               mRecorder.start();
+               Log.v("", "Started");
+           } catch (IOException e) {
+               Log.e(LOG_TAG, "prepare() failed");
+           }
+       }
+
+       private void stopRecording() 
+       {
+	        try 
+	        {
+			   mRecorder.stop();
+			   mRecorder.release();
+			   mRecorder = null;
+			}
+				catch (Exception e) {
+				Log.e("Record Stop", "Shit, can't stop recording.");
+				e.printStackTrace();
+	        }
+       	}
+
+       
+       @Override
+       public boolean dispatchKeyEvent(KeyEvent event) 
+       {
+    	   if (isReadyToRecord == true)
+    	   {
+           int action = event.getAction();
+           int keycode = event.getKeyCode();
+               switch (keycode)
+               {
+				   case KeyEvent.KEYCODE_VOLUME_UP:
+				   if (action == KeyEvent.ACTION_DOWN) 
+				   {
+					   if(isPlaying) 
+					   {
+						   //stop all players
+						   stopPlaying();
+						   isPlaying = false;
+					   }
+					   startRecording();
+					   isRecording = true;
+				
+				   }
+				   else if (action == KeyEvent.ACTION_UP) 
+				   {
+					   stopRecording();
+					   isRecording = false;
+				   }
+				   return true;
+				
+				   default:
+				   return super.dispatchKeyEvent(event);
+               }
+           }
+    	   else
+    	   {
+    		   return super.dispatchKeyEvent(event);
+    	   }
+       }
 }

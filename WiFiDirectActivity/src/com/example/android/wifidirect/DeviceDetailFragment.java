@@ -16,6 +16,7 @@
 
 package com.example.android.wifidirect;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -55,10 +56,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     protected static final int CHOOSE_FILE_RESULT_CODE = 20;
     private View mContentView = null;
     private WifiP2pDevice device;
-    private WifiP2pInfo info;
-    private boolean isWifiReady = false;
+    private WifiP2pInfo info; 
     ProgressDialog progressDialog = null;
-
+	Activity a = getActivity();
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -79,15 +79,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                     progressDialog.dismiss();
                 }
                 progressDialog = ProgressDialog.show(getActivity(), "Press back to cancel",
-                        "Connecting to :" + device.deviceAddress, true, true
-//                        new DialogInterface.OnCancelListener() {
-//
-//                            @Override
-//                            public void onCancel(DialogInterface dialog) {
-//                                ((DeviceActionListener) getActivity()).cancelDisconnect();
-//                            }
-//                        }
-                        );
+                        "Connecting to :" + device.deviceAddress, true, true);
                 ((DeviceActionListener) getActivity()).connect(config);
 
             }
@@ -108,8 +100,9 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                     @Override
                     public void onClick(View v) {
                     	// Connection established, performing actions
-                    	isWifiReady = true;
-                    	//sendAudioToPeer();
+                    	if(a instanceof WiFiDirectActivity) {
+                    	    ((WiFiDirectActivity) a).isReady();
+                    	}
                     }
                 });
 
@@ -119,7 +112,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     // This method should be called after recording via button is done
     public void sendAudioToPeer()
     {
-        Uri uri = Uri.parse(Environment.getExternalStorageDirectory().getAbsolutePath() + "/audiorecordtest.arm");
+        Uri uri = Uri.parse(Environment.getExternalStorageDirectory().getAbsolutePath() + "/ptt.arm");
         TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
         statusText.setText("Sending: " + uri);
         Log.d(WiFiDirectActivity.TAG, "Intent----------- " + uri);
@@ -154,7 +147,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         // server. The file server is single threaded, single connection server
         // socket.
         if (info.groupFormed && info.isGroupOwner) {
-            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
+            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text), a)
                     .execute();
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
@@ -208,14 +201,16 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
         private Context context;
         private TextView statusText;
+        private Activity caller;
 
         /**
          * @param context
          * @param statusText
          */
-        public FileServerAsyncTask(Context context, View statusText) {
+        public FileServerAsyncTask(Context context, View statusText, Activity w) {
             this.context = context;
             this.statusText = (TextView) statusText;
+            this.caller = w;
         }
 
         @Override
@@ -228,8 +223,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 
                 // This stuff is done while recieving the file
                 final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                        + context.getPackageName() + "/wifip2pshared-" + System.currentTimeMillis()
-                        + ".amr");
+                        + context.getPackageName() + "/pptin" + ".amr");
                 // gotta change to a fixed name so we can play it too!
                 
                 File dirs = new File(f.getParent());
@@ -259,11 +253,11 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
             {
                 statusText.setText("File copied - " + result);
             	// Here it tries to open the recieved file, we can change all of this
-            	// and play the file ourselves
-                Intent intent = new Intent();
-                intent.setAction(android.content.Intent.ACTION_VIEW);
-                intent.setDataAndType(Uri.parse("file://" + result), "audio/*");
-                context.startActivity(intent);
+            	// and play the file ourselves 
+                //IMPORTANT: DELETE AFTER PLAYED BEFORE ACCEPTING NEW AUDIO
+            	if(caller instanceof WiFiDirectActivity) {
+            	    ((WiFiDirectActivity) caller).startPlaying();
+            	}
             }
 
         }
