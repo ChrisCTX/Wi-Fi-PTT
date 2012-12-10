@@ -57,7 +57,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     protected static final int CHOOSE_FILE_RESULT_CODE = 20;
     private View mContentView = null;
     private WifiP2pDevice device;
-    private WifiP2pInfo info; 
+    private WifiP2pInfo info;
+    static MediaPlayer m = null;
     ProgressDialog progressDialog = null;
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
@@ -221,7 +222,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
                 
                 // This stuff is done while recieving the file
-                final File f = new File(Environment.getExternalStorageDirectory() + "/pptin" + ".amr");
+                final File f = new File(Environment.getExternalStorageDirectory() + "/pttin" + ".amr");
                 // gotta change to a fixed name so we can play it too!
                 
                 File dirs = new File(f.getParent());
@@ -233,6 +234,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 InputStream inputstream = client.getInputStream();
                 copyFile(inputstream, new FileOutputStream(f));
                 serverSocket.close();
+                
                 return f.getAbsolutePath();
             } catch (IOException e) {
                 Log.e(WiFiDirectActivity.TAG, e.getMessage());
@@ -251,21 +253,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
             {
                 statusText.setText("File copied - " + result);
             	// Here it tries to open the recieved file, we can change all of this
-            	// and play the file ourselves 
-                String mFileNameIn = Environment.getExternalStorageDirectory().getAbsolutePath() + "/pttin.arm";
-                MediaPlayer m = new MediaPlayer();
-                try
-                {
-                	mFileNameIn = Environment.getExternalStorageDirectory().getAbsolutePath() + "/pttin.arm";
-                	m.setDataSource(mFileNameIn);
-                	m.prepare();
-                    m.start();
-                }
-                catch (IOException e) 
-                {
-                	Log.e("ay", "prepare() failed");
-                }
-                	
+            	// and play the file ourselves
+                play();
             }
 
         }
@@ -281,6 +270,23 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
     }
 
+    public static void play()
+    {
+        String mFileNameIn = Environment.getExternalStorageDirectory().getAbsolutePath() + "/pttin.amr";
+        m = new MediaPlayer();
+        try
+        {
+        	m.setDataSource(mFileNameIn);
+        	m.prepare();
+            m.start();
+        }
+        catch (IOException e) 
+        {
+        	Log.e("ay", "prepare() failed");
+        }
+        	
+    }
+    
     public static boolean copyFile(InputStream inputStream, OutputStream out) {
         byte buf[] = new byte[1024];
         int len;
