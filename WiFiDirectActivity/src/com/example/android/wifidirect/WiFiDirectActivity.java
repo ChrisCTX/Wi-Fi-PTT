@@ -57,7 +57,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     private WifiP2pManager manager;
     private boolean isWifiP2pEnabled = false;
     private boolean retryChannel = false;
-    public boolean isReadyToRecord;
+    public static boolean isReadyToRecord;
     private final IntentFilter intentFilter = new IntentFilter();
     private Channel channel;
     private BroadcastReceiver receiver = null;
@@ -154,6 +154,7 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
     public void isReady()
     {
     	isReadyToRecord = true;
+    	Log.v("wifi", "se puso true el ready");
     }
     
     /*
@@ -387,6 +388,10 @@ public class WiFiDirectActivity extends Activity implements ChannelListener, Dev
 				   {
 					   stopRecording();
 					   isRecording = false;
+					   // send the stuff
+					   DeviceDetailFragment fragmentDetails = (DeviceDetailFragment) getFragmentManager()
+				                .findFragmentById(R.id.frag_detail);
+					   fragmentDetails.sendAudioToPeer();
 				   }
 				   return true;
 				

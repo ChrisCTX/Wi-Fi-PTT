@@ -22,6 +22,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.net.wifi.WpsInfo;
 import android.net.wifi.p2p.WifiP2pConfig;
@@ -58,7 +59,6 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     private WifiP2pDevice device;
     private WifiP2pInfo info; 
     ProgressDialog progressDialog = null;
-	Activity a = getActivity();
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -98,11 +98,11 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 new View.OnClickListener() {
 
                     @Override
-                    public void onClick(View v) {
+                    public void onClick(View v) 
+                    {
                     	// Connection established, performing actions
-                    	if(a instanceof WiFiDirectActivity) {
-                    	    ((WiFiDirectActivity) a).isReady();
-                    	}
+                    	Log.v("boton", "se pico");
+                    	WiFiDirectActivity.isReadyToRecord = true;
                     }
                 });
 
@@ -112,7 +112,8 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     // This method should be called after recording via button is done
     public void sendAudioToPeer()
     {
-        Uri uri = Uri.parse(Environment.getExternalStorageDirectory().getAbsolutePath() + "/ptt.arm");
+    	Log.v("uri", Environment.getExternalStorageDirectory() + "/ptt.arm");
+        Uri uri = Uri.parse("file://"+Environment.getExternalStorageDirectory().getAbsolutePath() + "/ptt.arm");
         TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
         statusText.setText("Sending: " + uri);
         Log.d(WiFiDirectActivity.TAG, "Intent----------- " + uri);
@@ -147,7 +148,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
         // server. The file server is single threaded, single connection server
         // socket.
         if (info.groupFormed && info.isGroupOwner) {
-            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text), a)
+            new FileServerAsyncTask(getActivity(), mContentView.findViewById(R.id.status_text))
                     .execute();
         } else if (info.groupFormed) {
             // The other device acts as the client. In this case, we enable the
@@ -201,16 +202,14 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
         private Context context;
         private TextView statusText;
-        private Activity caller;
 
         /**
          * @param context
          * @param statusText
          */
-        public FileServerAsyncTask(Context context, View statusText, Activity w) {
+        public FileServerAsyncTask(Context context, View statusText) {
             this.context = context;
             this.statusText = (TextView) statusText;
-            this.caller = w;
         }
 
         @Override
@@ -222,8 +221,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 Log.d(WiFiDirectActivity.TAG, "Server: connection done");
                 
                 // This stuff is done while recieving the file
-                final File f = new File(Environment.getExternalStorageDirectory() + "/"
-                        + context.getPackageName() + "/pptin" + ".amr");
+                final File f = new File(Environment.getExternalStorageDirectory() + "/pptin" + ".amr");
                 // gotta change to a fixed name so we can play it too!
                 
                 File dirs = new File(f.getParent());
@@ -254,10 +252,20 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
                 statusText.setText("File copied - " + result);
             	// Here it tries to open the recieved file, we can change all of this
             	// and play the file ourselves 
-                //IMPORTANT: DELETE AFTER PLAYED BEFORE ACCEPTING NEW AUDIO
-            	if(caller instanceof WiFiDirectActivity) {
-            	    ((WiFiDirectActivity) caller).startPlaying();
-            	}
+                String mFileNameIn = Environment.getExternalStorageDirectory().getAbsolutePath() + "/pttin.arm";
+                MediaPlayer m = new MediaPlayer();
+                try
+                {
+                	mFileNameIn = Environment.getExternalStorageDirectory().getAbsolutePath() + "/pttin.arm";
+                	m.setDataSource(mFileNameIn);
+                	m.prepare();
+                    m.start();
+                }
+                catch (IOException e) 
+                {
+                	Log.e("ay", "prepare() failed");
+                }
+                	
             }
 
         }
