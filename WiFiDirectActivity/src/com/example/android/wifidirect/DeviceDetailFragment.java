@@ -56,6 +56,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
     private View mContentView = null;
     private WifiP2pDevice device;
     private WifiP2pInfo info;
+    private boolean isWifiReady = false;
     ProgressDialog progressDialog = null;
 
     @Override
@@ -106,16 +107,17 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 
                     @Override
                     public void onClick(View v) {
-                        // Allow user to pick an image from Gallery or other
-                        // registered apps
-                    	hue();
+                    	// Connection established, performing actions
+                    	isWifiReady = true;
+                    	//sendAudioToPeer();
                     }
                 });
 
         return mContentView;
     }
 
-    public void hue()
+    // This method should be called after recording via button is done
+    public void sendAudioToPeer()
     {
         Uri uri = Uri.parse(Environment.getExternalStorageDirectory().getAbsolutePath() + "/audiorecordtest.arm");
         TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
